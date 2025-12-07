@@ -1,16 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useUIStore } from "../../store/ui-store";
 import { AddWidgetCard } from "./add-widget-card";
 import AddWidgetDialog from "./add-widget-dialog";
 
 export function AddWidgetContainer() {
-  const [open, setOpen] = useState(false);
+  const addWidgetOpen = useUIStore((s) => s.addWidgetOpen);
+  const setAddWidgetOpen = useUIStore((s) => s.setAddWidgetOpen);
 
   return (
     <>
-      <AddWidgetCard onClick={() => setOpen(true)} />
-      <AddWidgetDialog open={open} setOpen={setOpen} />
+      <AddWidgetCard onClick={() => setAddWidgetOpen(true)} />
+      <AddWidgetDialog open={addWidgetOpen} setOpen={setAddWidgetOpen} />
     </>
   );
 }

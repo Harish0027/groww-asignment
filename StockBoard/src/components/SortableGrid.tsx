@@ -27,6 +27,7 @@ export function SortableItem({ id, children }: any) {
     transform: CSS.Transform.toString(transform),
     transition,
     touchAction: "none",
+    width: "100%", //  important
   };
 
   return (

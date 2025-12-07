@@ -40,7 +40,7 @@ interface Props {
   type?: "card" | "table" | "chart";
 }
 
-export default function WidgetChartContainer({ data, type }: Props) {
+export default function ChartManager({ data, type }: Props) {
   const [comparedStocks, setComparedStocks] = useState<StockData[]>([]);
   const [historicalData, setHistoricalData] = useState<{
     [key: string]: StockHistoricalData[];
@@ -93,6 +93,7 @@ export default function WidgetChartContainer({ data, type }: Props) {
   // Update data on timeframe change
   useEffect(() => {
     if (comparedStocks.length === 0) return;
+
     const update = async () => {
       setIsLoading(true);
       await Promise.all(
@@ -100,8 +101,38 @@ export default function WidgetChartContainer({ data, type }: Props) {
       );
       setIsLoading(false);
     };
+
     update();
-  }, [timeframe, comparedStocks]);
+  }, [timeframe]); //  removed comparedStocks
+
+  // Auto-load stocks ONLY when type === "chart"
+  useEffect(() => {
+    if (type !== "chart") return;
+    if (!Array.isArray(data) || data.length === 0) return;
+
+    const newSymbols = data.filter(
+      (s) => !comparedStocks.some((c) => c.symbol === s)
+    );
+
+    if (newSymbols.length === 0) return; //  avoid re-fetch loop
+
+    const load = async () => {
+      setIsLoading(true);
+      await Promise.all(
+        newSymbols.map(async (symbol) => {
+          const stockData = await getStockQuote(symbol);
+          if (stockData) {
+            setComparedStocks((prev) => [...prev, stockData]);
+            return fetchHistoricalData(symbol, timeframe);
+          }
+        })
+      );
+
+      setIsLoading(false);
+    };
+
+    load();
+  }, [data, type]);
 
   // Prepare chart data
   const prepareChartData = () => {

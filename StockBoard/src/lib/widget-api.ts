@@ -10,7 +10,9 @@ export type WidgetType = "card" | "table" | "chart";
 export async function getWidgetStockData(
   symbols: string[],
   type: WidgetType
-): Promise<StockData | StockData[] | Record<string, StockHistoricalData[]>> {
+): Promise<
+  StockData | StockData[] | Record<string, StockHistoricalData[]> | string[]
+> {
   try {
     if (type === "card") {
       // Card widget should contain only one symbol
@@ -26,35 +28,30 @@ export async function getWidgetStockData(
     }
 
     if (type === "table") {
-      // Table can have multiple symbols
       const data: StockData[] = [];
+
       for (const symbol of symbols) {
         const stock = await getStockQuote(symbol);
         if (stock) data.push(stock);
       }
-      return data; // array of StockData
+
+      return data;
     }
 
     if (type === "chart") {
-      // Chart can have multiple symbols, fetch historical data for each
-      const data: Record<string, StockHistoricalData[]> = {};
-      for (const symbol of symbols) {
-        const history = await getHistoricalData(symbol, "daily"); // default to daily interval
-        data[symbol] = history;
-      }
-      return data; // object with symbol -> historical data array
+      // ⬇⬇⬇ FIXED: return symbols directly
+      return symbols;
     }
 
     throw new Error(`Unsupported widget type: ${type}`);
   } catch (error) {
     console.error("getWidgetStockData error:", error);
 
-    // Return fallback based on widget type
+    // fallback returns
     if (type === "card") return {} as StockData;
     if (type === "table") return [] as StockData[];
-    if (type === "chart") return {} as Record<string, StockHistoricalData[]>;
+    if (type === "chart") return [] as string[];
 
-    // fallback, should never hit
     return {} as any;
   }
 }

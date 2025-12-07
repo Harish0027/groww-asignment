@@ -7,13 +7,15 @@ import SortableGrid, { SortableItem } from "@/components/SortableGrid";
 import { StockCard } from "@/components/stock-card";
 import WidgetChartContainer from "./widgets/widget-chart-container";
 import WidgetTableContainer from "./widgets/widget-table-container";
-import { useWidgetStore, Widget } from "../../store/widget-store";
+import { useWidgetStore } from "../../store/widget-store";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useUIStore } from "../../store/ui-store";
+import { StockData } from "@/lib/api";
 
 export default function DashboardWidgets() {
   const widgets = useWidgetStore((s) => s.widgets);
-
-  console.log("DashboardWidgets - widgets from store:", widgets); // ✅ debug widgets
+  const setAddWidgetOpen = useUIStore((s) => s.setAddWidgetOpen);
+  const setWidgetsOrder = useWidgetStore((s) => s.setWidgetsOrder);
 
   const container = {
     hidden: { opacity: 0 },
@@ -49,6 +51,24 @@ export default function DashboardWidgets() {
         <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
           Dashboard Widgets
         </h2>
+
+        {/* Desktop Add Widget Button */}
+        <Button
+          variant="secondary"
+          className="hidden md:flex"
+          onClick={() => setAddWidgetOpen(true)}
+        >
+          Add Widget
+        </Button>
+
+        {/* Mobile Add Widget Button */}
+        <Button
+          size="sm"
+          className="md:hidden"
+          onClick={() => setAddWidgetOpen(true)}
+        >
+          +
+        </Button>
       </div>
 
       <motion.div
@@ -57,7 +77,7 @@ export default function DashboardWidgets() {
         initial="hidden"
         animate="show"
       >
-        <SortableGrid items={widgets} setItems={() => {}}>
+        <SortableGrid items={widgets} setItems={setWidgetsOrder}>
           {widgets.map((widget) => (
             <SortableItem key={widget.id} id={widget.id}>
               <motion.div variants={item}>
@@ -71,11 +91,11 @@ export default function DashboardWidgets() {
   );
 }
 
-function WidgetRenderer({ widget }: any) {
+function WidgetRenderer({ widget }: { widget: any }) {
   const { title, type, id, data, symbols } = widget;
 
-  console.log("WidgetRenderer - widget:", widget); // ✅ debug each widget
-  console.log("WidgetRenderer - data:", data); // ✅ debug data for widget
+  console.log("WidgetRenderer - widget:", widget); //  debug each widget
+  console.log("WidgetRenderer - data:", data); //  debug data for widget
 
   const refreshWidget = useWidgetStore((s) => s.refreshWidget);
   const removeWidget = useWidgetStore((s) => s.removeWidget);
@@ -85,8 +105,21 @@ function WidgetRenderer({ widget }: any) {
 
   const showCardWarning = type === "card" && symbols.length > 1;
 
+  // Fallback data for card widget
+  const stockData: any =
+    type === "card"
+      ? (data as StockData) || {
+          symbol: symbols[0] || "N/A",
+          name: "N/A",
+          price: 0,
+          change: 0,
+          changePercent: 0,
+          volume: 0,
+        }
+      : null;
+
   return (
-    <div className="bg-background rounded-lg p-4 shadow w-full">
+    <div className="bg-background rounded-lg p-4 shadow w-full min-h-[150px]">
       <div className="flex justify-between items-center mb-2">
         <h3 className="font-semibold">{title}</h3>
         <Button size="icon" onClick={handleRefresh} variant="ghost">
@@ -98,32 +131,25 @@ function WidgetRenderer({ widget }: any) {
         <Alert variant="destructive" className="mb-2">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Card widget cannot have multiple symbols. Consider switching to
-            Table view.
+            Card widget cannot have multiple symbols.
           </AlertDescription>
         </Alert>
       )}
 
-      {!data && (
+      {!data && type !== "card" && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>No data available.</AlertDescription>
         </Alert>
       )}
 
-      {data && (
-        <>
-          {type === "card" && !showCardWarning && (
-            <StockCard
-              stock={data as any}
-              showRemoveButton
-              onRemove={handleRemove}
-            />
-          )}
-          {type === "table" && <WidgetTableContainer data={data} />}
-          {type === "chart" && <WidgetChartContainer data={data} />}
-        </>
+      {type === "card" && !showCardWarning && (
+        <StockCard stock={stockData} showRemoveButton onRemove={handleRemove} />
       )}
+
+      {type === "table" && <WidgetTableContainer data={data || []} />}
+
+      {type === "chart" && <WidgetChartContainer data={symbols || []} />}
     </div>
   );
 }

@@ -133,16 +133,6 @@ export function Navbar() {
           </nav>
 
           <ThemeToggle />
-
-          {/* Desktop Add Widget Button */}
-          <Button variant="secondary" className="hidden md:flex">
-            Add Widget
-          </Button>
-
-          {/* Mobile Add Widget Button */}
-          <Button size="sm" className="md:hidden">
-            +
-          </Button>
         </div>
       </div>
     </header>

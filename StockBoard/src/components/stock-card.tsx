@@ -27,7 +27,7 @@ export function StockCard({
   showRemoveButton = false,
   onRemove,
 }: StockCardProps) {
-  // ⬅️ REPLACED useStocks() WITH Zustand store
+  // REPLACED useStocks() WITH Zustand store
   const isInWatchlist = useStockStore((s) => s.isInWatchlist);
   const addToWatchlist = useStockStore((s) => s.addToWatchlist);
   const removeFromWatchlist = useStockStore((s) => s.removeFromWatchlist);

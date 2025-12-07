@@ -51,20 +51,22 @@ export interface Widget {
 // --------------------
 interface WidgetStoreState {
   widgets: Widget[];
-  refreshTimer: any;
 
   addWidget: (
     widget: Omit<Widget, "id" | "createdAt" | "data">
   ) => Promise<void>;
+
   updateWidgetData: (
     id: string,
     data: CardWidgetData | TableWidgetData | ChartWidgetData
   ) => void;
+
   removeWidget: (id: string) => void;
   refreshWidget: (id: string) => void;
   clearWidgets: () => void;
-  startRefreshPolling: () => void;
-  stopRefreshPolling: () => void;
+
+  /** IMPORTANT → used for Drag & Drop */
+  setWidgetsOrder: (newOrder: Widget[]) => void;
 }
 
 // --------------------
@@ -74,7 +76,6 @@ export const useWidgetStore = create<WidgetStoreState>()(
   persist(
     (set, get) => ({
       widgets: [],
-      refreshTimer: null,
 
       addWidget: async (widget) => {
         try {
@@ -84,6 +85,7 @@ export const useWidgetStore = create<WidgetStoreState>()(
           );
 
           let formattedData: CardWidgetData | TableWidgetData | ChartWidgetData;
+
           if (widget.type === "card") formattedData = data as CardWidgetData;
           else if (widget.type === "table")
             formattedData = data as TableWidgetData;
@@ -107,6 +109,10 @@ export const useWidgetStore = create<WidgetStoreState>()(
         }
       },
 
+      setWidgetsOrder: (newOrder) => {
+        set({ widgets: newOrder });
+      },
+
       updateWidgetData: (id, data) => {
         set((state) => ({
           widgets: state.widgets.map((w) => (w.id === id ? { ...w, data } : w)),
@@ -128,6 +134,7 @@ export const useWidgetStore = create<WidgetStoreState>()(
             widget.symbols,
             widget.type as APIWidgetType
           );
+
           let formattedData: CardWidgetData | TableWidgetData | ChartWidgetData;
 
           if (widget.type === "card") formattedData = newData as CardWidgetData;
@@ -150,23 +157,6 @@ export const useWidgetStore = create<WidgetStoreState>()(
       },
 
       clearWidgets: () => set({ widgets: [] }),
-
-      startRefreshPolling: () => {
-        if (get().refreshTimer) return;
-
-        const timer = setInterval(() => {
-          get().widgets.forEach((w) => {
-            if (w.refreshInterval) get().refreshWidget(w.id);
-          });
-        }, 1000);
-
-        set({ refreshTimer: timer });
-      },
-
-      stopRefreshPolling: () => {
-        clearInterval(get().refreshTimer);
-        set({ refreshTimer: null });
-      },
     }),
     {
       name: "widget-store",
@@ -179,9 +169,3 @@ export const useWidgetStore = create<WidgetStoreState>()(
     }
   )
 );
-
-// Auto-start polling
-if (typeof window !== "undefined") {
-  const store = useWidgetStore.getState();
-  if (!store.refreshTimer) store.startRefreshPolling();
-}
