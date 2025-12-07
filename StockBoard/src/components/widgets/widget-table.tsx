@@ -37,7 +37,7 @@ import { DataTableColumnHeader } from "./table/table-column-header";
 import { DataTableToolbar } from "./table/table-searchbar";
 
 const FINNHUB_BASE_URL = "https://finnhub.io/api/v1";
-const FINNHUB_API_KEY = process.env.NEXT_PUBLIC_FINNHUB_API_KEY;
+const FINNHUB_API_KEY = "d06fke9r01qg26s7lp40d06fke9r01qg26s7lp4g";
 
 // ---------------- Columns ----------------
 const columns: ColumnDef<any>[] = [
@@ -65,12 +65,7 @@ const columns: ColumnDef<any>[] = [
       <DataTableColumnHeader column={column} title="Change" />
     ),
   },
-  {
-    accessorKey: "changePercent",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="% Change" />
-    ),
-  },
+
   {
     accessorKey: "volume",
     header: ({ column }) => (
@@ -94,11 +89,7 @@ interface StockTableProps {
 export function StockTable({ symbols, pagination }: StockTableProps) {
   const [data, setData] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const {
-    totalCount = data.length,
-    pageNumber = 1,
-    pageSize = 10,
-  } = pagination || {};
+  const { pageNumber = 1, pageSize = 10 } = pagination || {};
 
   // ---------------- Fetch Function ----------------
   async function fetchStock(symbol: string) {
@@ -112,7 +103,9 @@ export function StockTable({ symbols, pagination }: StockTableProps) {
 
     const quoteData = await quoteRes.json();
     const profileData = await profileRes.json();
-
+    console.log(
+      quoteData.v + "quotieeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    );
     return {
       symbol,
       name: profileData.name || symbol,
@@ -137,6 +130,7 @@ export function StockTable({ symbols, pagination }: StockTableProps) {
     (async () => {
       setLoading(true);
       const results = await Promise.all(symbols.map((s) => fetchStock(s)));
+      console.log("reusltiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii" + results[0].volume);
       setData(results);
       setLoading(false);
     })();
