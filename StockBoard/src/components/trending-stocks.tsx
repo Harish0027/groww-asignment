@@ -1,0 +1,149 @@
+"use client";
+
+import { StockCard } from "@/components/stock-card";
+import { RefreshCw, AlertCircle } from "lucide-react";
+import { Button, Alert, AlertDescription } from "@/components/ui";
+import { motion } from "framer-motion";
+import SortableGrid, { SortableItem } from "@/components/SortableGrid";
+import { useState, useEffect } from "react";
+import { useStockStore } from "../../store/dashboard-store";
+
+export default function TrendingStocks() {
+  const {
+    trendingStocks,
+    refreshStocks,
+    isLoading,
+    apiError,
+    resetAndRetryStocks,
+  } = useStockStore();
+
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1, delayChildren: 0.1 },
+    },
+  };
+
+  const item = {
+    hidden: { opacity: 0, y: 20 },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: { type: "spring", stiffness: 260, damping: 20 },
+    },
+  };
+
+  const headerVariants = {
+    hidden: { opacity: 0, y: -20 },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: { type: "spring", stiffness: 300, damping: 24 },
+    },
+  };
+
+  const [draggableStocks, setDraggableStocks] = useState(trendingStocks);
+
+  useEffect(() => {
+    setDraggableStocks(trendingStocks);
+  }, [trendingStocks]);
+
+  return (
+    <section className="space-y-4 md:space-y-6 animate-fade-in">
+      <motion.div
+        className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 relative"
+        initial="hidden"
+        animate="show"
+        variants={headerVariants}
+      >
+        <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
+          Trending Stocks
+        </h2>
+
+        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-1"
+            onClick={() => (apiError ? resetAndRetryStocks() : refreshStocks())}
+            disabled={isLoading && !apiError}
+          >
+            <RefreshCw
+              className={`h-4 w-4 ${
+                isLoading && !apiError ? "animate-spin" : ""
+              }`}
+            />
+            {apiError ? "Retry Connection" : "Refresh"}
+          </Button>
+        </motion.div>
+
+        {isLoading && !apiError && trendingStocks.length > 0 && (
+          <span className="absolute right-0 top-full text-xs text-muted-foreground flex items-center gap-1 pt-1">
+            <span className="animate-spin h-2 w-2 border-b-2 border-primary rounded-full inline-block" />
+            Refreshing...
+          </span>
+        )}
+      </motion.div>
+
+      {apiError && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Unable to connect to the stock API. Please try again later.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {isLoading && trendingStocks.length === 0 && !apiError && (
+        <div className="flex justify-center items-center h-40">
+          <div className="flex flex-col items-center gap-2">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <p className="text-muted-foreground">Loading trending stocks...</p>
+          </div>
+        </div>
+      )}
+
+      {!isLoading && trendingStocks.length === 0 && !apiError ? (
+        <motion.div
+          className="flex justify-center items-center h-40"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="text-center">
+            <p className="text-muted-foreground mb-4">
+              No trending stocks available
+            </p>
+            <Button onClick={() => refreshStocks()}>
+              Retry Loading Stocks
+            </Button>
+          </div>
+        </motion.div>
+      ) : (
+        (trendingStocks.length > 0 || apiError) && (
+          <SortableGrid items={draggableStocks} setItems={setDraggableStocks}>
+            <motion.div
+              className="responsive-grid"
+              variants={container}
+              initial="hidden"
+              animate="show"
+            >
+              {draggableStocks.map((stock, index) => (
+                <SortableItem key={stock.symbol} id={stock.symbol}>
+                  <motion.div
+                    variants={item}
+                    className="animate-delay-100"
+                    style={{ animationDelay: `${index * 100}ms` }}
+                  >
+                    <StockCard stock={stock} />
+                  </motion.div>
+                </SortableItem>
+              ))}
+            </motion.div>
+          </SortableGrid>
+        )
+      )}
+    </section>
+  );
+}
