@@ -153,53 +153,8 @@ export const useStockStore = create<StoreState>()(
 
       isInWatchlist: (symbol) => get().watchlist.includes(symbol),
 
-      //---------------------------------------------------
-      // PORTFOLIOS
-      //---------------------------------------------------
-      createPortfolio: (name) => {
-        const p: Portfolio = {
-          id: Date.now().toString(),
-          name,
-          stocks: [],
-          createdAt: new Date().toISOString(),
-        };
-        set((state) => ({ portfolios: [...state.portfolios, p] }));
-      },
-
-      deletePortfolio: (id) =>
-        set((state) => ({
-          portfolios: state.portfolios.filter((p) => p.id !== id),
-          activePortfolio:
-            state.activePortfolio?.id === id ? null : state.activePortfolio,
-        })),
-
-      addToPortfolio: (portfolioId, symbol) =>
-        set((state) => ({
-          portfolios: state.portfolios.map((p) =>
-            p.id === portfolioId && !p.stocks.includes(symbol)
-              ? { ...p, stocks: [...p.stocks, symbol] }
-              : p
-          ),
-        })),
-
-      removeFromPortfolio: (portfolioId, symbol) =>
-        set((state) => ({
-          portfolios: state.portfolios.map((p) =>
-            p.id === portfolioId
-              ? { ...p, stocks: p.stocks.filter((s) => s !== symbol) }
-              : p
-          ),
-        })),
-
-      getPortfolioStocks: async (portfolioId) => {
-        const p = get().portfolios.find((p) => p.id === portfolioId);
-        if (!p || p.stocks.length === 0) return [];
-
-        const stocks = await Promise.all(p.stocks.map((s) => getStockQuote(s)));
-        return stocks.filter((s): s is StockData => s !== null);
-      },
-
-      setActivePortfolio: (p) => set({ activePortfolio: p }),
+      
+     ,
 
       //---------------------------------------------------
       // PRICE ALERTS
