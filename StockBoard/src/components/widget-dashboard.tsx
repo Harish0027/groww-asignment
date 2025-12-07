@@ -147,7 +147,7 @@ function WidgetRenderer({ widget }: { widget: any }) {
         <StockCard stock={stockData} showRemoveButton onRemove={handleRemove} />
       )}
 
-      {type === "table" && <WidgetTableContainer data={data || []} />}
+      {type === "table" && <WidgetTableContainer data={symbols || []} />}
 
       {type === "chart" && <WidgetChartContainer data={symbols || []} />}
     </div>

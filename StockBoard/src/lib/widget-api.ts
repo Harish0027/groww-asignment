@@ -28,14 +28,9 @@ export async function getWidgetStockData(
     }
 
     if (type === "table") {
-      const data: StockData[] = [];
+      // Table can have multiple symbols
 
-      for (const symbol of symbols) {
-        const stock = await getStockQuote(symbol);
-        if (stock) data.push(stock);
-      }
-
-      return data;
+      return symbols; // array of StockData
     }
 
     if (type === "chart") {

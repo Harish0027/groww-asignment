@@ -1,11 +1,10 @@
 import React from "react";
 import { StockTable } from "./widget-table";
 
-interface WidgetTableContainerProps {
-  data: any[];
-}
-
-const WidgetTableContainer = ({ data }: WidgetTableContainerProps) => {
+const WidgetTableContainer = ({ data }: { data: any }) => {
+  console.log(
+    data + "+++++++++++++++++++++++++++++++++++++++++++++++++++ from tble"
+  );
   return (
     <div className="w-full h-full flex-col space-y-8 pt-3">
       <div className="flex items-center justify-between space-y-2">
@@ -19,7 +18,7 @@ const WidgetTableContainer = ({ data }: WidgetTableContainerProps) => {
       </div>
 
       <div>
-        <StockTable data={data} />
+        <StockTable symbols={data} pagination={[]} />
       </div>
     </div>
   );

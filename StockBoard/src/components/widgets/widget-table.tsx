@@ -36,41 +36,21 @@ import { DataTablePagination } from "./table/table-pagination";
 import { DataTableColumnHeader } from "./table/table-column-header";
 import { DataTableToolbar } from "./table/table-searchbar";
 
+const FINNHUB_BASE_URL = "https://finnhub.io/api/v1";
+const FINNHUB_API_KEY = process.env.NEXT_PUBLIC_FINNHUB_API_KEY;
+
+// ---------------- Columns ----------------
 const columns: ColumnDef<any>[] = [
   {
-    id: "_id",
-    header: ({ table }) => {
-      const ref = React.useRef<HTMLInputElement>(null);
-
-      React.useEffect(() => {
-        if (ref.current) {
-          ref.current.indeterminate = table.getIsSomePageRowsSelected();
-        }
-      }, [table]);
-
-      return (
-        <input
-          ref={ref}
-          type="checkbox"
-          checked={table.getIsAllPageRowsSelected()}
-          onChange={(e) => table.toggleAllPageRowsSelected(e.target.checked)}
-        />
-      );
-    },
-    cell: ({ row }) => (
-      <input
-        type="checkbox"
-        checked={row.getIsSelected()}
-        onChange={(e) => row.toggleSelected(!!e.target.checked)}
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
-    accessorKey: "name", // use 'name' instead of 'company'
+    accessorKey: "name",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Company" />
+    ),
+  },
+  {
+    accessorKey: "symbol",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Symbol" />
     ),
   },
   {
@@ -80,7 +60,7 @@ const columns: ColumnDef<any>[] = [
     ),
   },
   {
-    accessorKey: "change", // example: show change
+    accessorKey: "change",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Change" />
     ),
@@ -92,31 +72,77 @@ const columns: ColumnDef<any>[] = [
     ),
   },
   {
-    accessorKey: "symbol", // show symbol
+    accessorKey: "volume",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Symbol" />
+      <DataTableColumnHeader column={column} title="Volume" />
+    ),
+  },
+  {
+    accessorKey: "marketCap",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Market Cap" />
     ),
   },
 ];
 
-interface PaginationProps {
-  totalCount: number;
-  pageNumber: number;
-  pageSize: number;
-}
-
+// ---------------- Component ----------------
 interface StockTableProps {
-  data: any[];
-  pagination?: PaginationProps;
+  symbols: string[]; // IMPORTANT: new prop
+  pagination: any;
 }
 
-export function StockTable({ data = [], pagination }: StockTableProps) {
+export function StockTable({ symbols, pagination }: StockTableProps) {
+  const [data, setData] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
   const {
     totalCount = data.length,
     pageNumber = 1,
     pageSize = 10,
   } = pagination || {};
 
+  // ---------------- Fetch Function ----------------
+  async function fetchStock(symbol: string) {
+    const quoteUrl = `${FINNHUB_BASE_URL}/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`;
+    const profileUrl = `${FINNHUB_BASE_URL}/stock/profile2?symbol=${symbol}&token=${FINNHUB_API_KEY}`;
+
+    const [quoteRes, profileRes] = await Promise.all([
+      fetch(quoteUrl),
+      fetch(profileUrl),
+    ]);
+
+    const quoteData = await quoteRes.json();
+    const profileData = await profileRes.json();
+
+    return {
+      symbol,
+      name: profileData.name || symbol,
+      price: quoteData.c,
+      change: quoteData.d,
+      changePercent: quoteData.dp,
+      volume: quoteData.v,
+      marketCap: profileData.marketCapitalization
+        ? profileData.marketCapitalization * 1000000
+        : undefined,
+      high: quoteData.h,
+      low: quoteData.l,
+      open: quoteData.o,
+      previousClose: quoteData.pc,
+    };
+  }
+
+  // ---------------- Fetch All Symbols ----------------
+  React.useEffect(() => {
+    if (!symbols || symbols.length === 0) return;
+
+    (async () => {
+      setLoading(true);
+      const results = await Promise.all(symbols.map((s) => fetchStock(s)));
+      setData(results);
+      setLoading(false);
+    })();
+  }, [symbols]);
+
+  // ---------------- Table State ----------------
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
@@ -125,34 +151,34 @@ export function StockTable({ data = [], pagination }: StockTableProps) {
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
 
-  //  Memoize data so React Table updates when `data` changes
-  const memoizedData = React.useMemo(() => data, [data]);
-
   const table = useReactTable({
-    data: memoizedData,
+    data,
     columns,
-    manualPagination: true,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
       rowSelection,
-      pagination: { pageIndex: pageNumber - 1, pageSize },
     },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
   });
 
+  if (loading)
+    return (
+      <div className="text-center p-10 text-lg font-medium">Loading...</div>
+    );
+
   return (
     <div className="w-full space-y-2">
       <div className="block w-full lg:flex lg:items-center lg:justify-between">
         <DataTableToolbar table={table} />
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="ml-auto w-full lg:w-auto">
@@ -160,19 +186,16 @@ export function StockTable({ data = [], pagination }: StockTableProps) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {table
-              .getAllColumns()
-              .filter((column) => column.getCanHide())
-              .map((column) => (
-                <DropdownMenuCheckboxItem
-                  key={column.id}
-                  className="capitalize"
-                  checked={column.getIsVisible()}
-                  onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                >
-                  {column.id}
-                </DropdownMenuCheckboxItem>
-              ))}
+            {table.getAllLeafColumns().map((column) => (
+              <DropdownMenuCheckboxItem
+                key={column.id}
+                checked={column.getIsVisible()}
+                onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                className="capitalize"
+              >
+                {column.id}
+              </DropdownMenuCheckboxItem>
+            ))}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -199,10 +222,7 @@ export function StockTable({ data = [], pagination }: StockTableProps) {
           <TableBody>
             {table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                >
+                <TableRow key={row.id}>
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(
@@ -215,11 +235,8 @@ export function StockTable({ data = [], pagination }: StockTableProps) {
               ))
             ) : (
               <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  No results.
+                <TableCell colSpan={columns.length} className="text-center p-6">
+                  No data available.
                 </TableCell>
               </TableRow>
             )}
@@ -229,9 +246,9 @@ export function StockTable({ data = [], pagination }: StockTableProps) {
 
       <DataTablePagination
         table={table}
+        totalCount={data.length}
         pageNumber={pageNumber}
         pageSize={pageSize}
-        totalCount={totalCount}
       />
     </div>
   );
