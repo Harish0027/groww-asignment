@@ -67,12 +67,6 @@ const columns: ColumnDef<any>[] = [
   },
 
   {
-    accessorKey: "volume",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Volume" />
-    ),
-  },
-  {
     accessorKey: "marketCap",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Market Cap" />
